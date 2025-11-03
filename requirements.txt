@@ -3,3 +3,10 @@ beautifulsoup4>=4.11.0
 Pillow>=9.0.0
 dnspython>=2.2.0
 urllib3>=1.26.0
+
+# Network Penetration Testing Dependencies
+python-nmap>=0.7.1
+scapy>=2.5.0
+python-gvm>=21.0.0
+ipaddress>=1.0.23
+

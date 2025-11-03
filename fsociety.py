@@ -68,6 +68,9 @@ try:
 		=== OSINT (Open Source Intelligence) ===
 		[1] OSINT Tools
 		
+		=== NETWORK PENETRATION TESTING ===
+		[2] Network Tools
+		
 		=== INFORMATION ===
 		[90] About FSociety
 		[91] Random Quote
@@ -227,6 +230,159 @@ try:
 				
 				else:
 					if osint_select:
+						print("\n\033[91m [!] Invalid option. Please try again.\033[0m")
+						time.sleep(1)
+						clear_screen()
+		
+		# Network Tools Menu
+		elif select == '2':
+			clear_screen()
+			network_running = True
+			while network_running:
+				print("\n\033[92m" + "="*70)
+				print("           NETWORK PENETRATION TESTING TOOLS")
+				print("="*70 + "\033[0m\n")
+				
+				print("\033[97m[1]  Port Scanner (Nmap Wrapper)\033[0m")
+				print("\033[97m     Stealthy SYN scans and service version detection\033[0m\n")
+				
+				print("\033[97m[2]  Custom Packet Sniffer\033[0m")
+				print("\033[97m     Capture and analyze network traffic in real-time\033[0m\n")
+				
+				print("\033[97m[3]  ARP Cache Poisoning Tool\033[0m")
+				print("\033[97m     MITM attack to intercept local network traffic\033[0m\n")
+				
+				print("\033[97m[4]  DNS Spoofing Tool\033[0m")
+				print("\033[97m     Redirect traffic with false DNS records\033[0m\n")
+				
+				print("\033[97m[5]  Vulnerability Scanner Integrator\033[0m")
+				print("\033[97m     Automate network vulnerability scanning\033[0m\n")
+				
+				print("\033[97m[6]  Controlled Traffic Generator\033[0m")
+				print("\033[97m     Ethical DoS simulation and resilience testing\033[0m\n")
+				
+				print("\033[97m[7]  Banner Grabbing Tool\033[0m")
+				print("\033[97m     Retrieve service version information from ports\033[0m\n")
+				
+				print("\033[97m[8]  NetBIOS Name Resolver\033[0m")
+				print("\033[97m     Enumerate Windows hosts, shares, and users\033[0m\n")
+				
+				print("\033[97m[9]  SMB Vulnerability Exploiter\033[0m")
+				print("\033[97m     Exploit SMB vulnerabilities (EternalBlue, etc.)\033[0m\n")
+				
+				print("\033[97m[10] ICMP Ping Sweeper\033[0m")
+				print("\033[97m     Identify live hosts on a network\033[0m\n")
+				
+				print("\033[91m[0]  Back to Main Menu\033[0m\n")
+				
+				network_select = input("\033[95m [?] Select Network Tool : \033[0m")
+				
+				if network_select == '1':
+					clear_screen()
+					try:
+						from network import port_scanner
+						port_scanner.run()
+					except Exception as e:
+						print(f"\033[91m[!] Error: {str(e)}\033[0m")
+					input("\n\033[97m [*] Press Enter to continue...\033[0m")
+					clear_screen()
+				
+				elif network_select == '2':
+					clear_screen()
+					try:
+						from network import packet_sniffer
+						packet_sniffer.run()
+					except Exception as e:
+						print(f"\033[91m[!] Error: {str(e)}\033[0m")
+					input("\n\033[97m [*] Press Enter to continue...\033[0m")
+					clear_screen()
+				
+				elif network_select == '3':
+					clear_screen()
+					try:
+						from network import arp_poisoning
+						arp_poisoning.run()
+					except Exception as e:
+						print(f"\033[91m[!] Error: {str(e)}\033[0m")
+					input("\n\033[97m [*] Press Enter to continue...\033[0m")
+					clear_screen()
+				
+				elif network_select == '4':
+					clear_screen()
+					try:
+						from network import dns_spoof
+						dns_spoof.run()
+					except Exception as e:
+						print(f"\033[91m[!] Error: {str(e)}\033[0m")
+					input("\n\033[97m [*] Press Enter to continue...\033[0m")
+					clear_screen()
+				
+				elif network_select == '5':
+					clear_screen()
+					try:
+						from network import vuln_scanner
+						vuln_scanner.run()
+					except Exception as e:
+						print(f"\033[91m[!] Error: {str(e)}\033[0m")
+					input("\n\033[97m [*] Press Enter to continue...\033[0m")
+					clear_screen()
+				
+				elif network_select == '6':
+					clear_screen()
+					try:
+						from network import traffic_generator
+						traffic_generator.run()
+					except Exception as e:
+						print(f"\033[91m[!] Error: {str(e)}\033[0m")
+					input("\n\033[97m [*] Press Enter to continue...\033[0m")
+					clear_screen()
+				
+				elif network_select == '7':
+					clear_screen()
+					try:
+						from network import banner_grabber
+						banner_grabber.run()
+					except Exception as e:
+						print(f"\033[91m[!] Error: {str(e)}\033[0m")
+					input("\n\033[97m [*] Press Enter to continue...\033[0m")
+					clear_screen()
+				
+				elif network_select == '8':
+					clear_screen()
+					try:
+						from network import netbios_resolver
+						netbios_resolver.run()
+					except Exception as e:
+						print(f"\033[91m[!] Error: {str(e)}\033[0m")
+					input("\n\033[97m [*] Press Enter to continue...\033[0m")
+					clear_screen()
+				
+				elif network_select == '9':
+					clear_screen()
+					try:
+						from network import smb_exploiter
+						smb_exploiter.run()
+					except Exception as e:
+						print(f"\033[91m[!] Error: {str(e)}\033[0m")
+					input("\n\033[97m [*] Press Enter to continue...\033[0m")
+					clear_screen()
+				
+				elif network_select == '10':
+					clear_screen()
+					try:
+						from network import ping_sweeper
+						ping_sweeper.run()
+					except Exception as e:
+						print(f"\033[91m[!] Error: {str(e)}\033[0m")
+					input("\n\033[97m [*] Press Enter to continue...\033[0m")
+					clear_screen()
+				
+				elif network_select == '0':
+					clear_screen()
+					network_running = False
+				
+				else:
+					if network_select:
 						print("\n\033[91m [!] Invalid option. Please try again.\033[0m")
 						time.sleep(1)
 						clear_screen()
