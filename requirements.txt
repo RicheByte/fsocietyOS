@@ -1,3 +1,4 @@
+# Core Dependencies
 requests>=2.28.0
 beautifulsoup4>=4.11.0
 Pillow>=9.0.0
@@ -9,4 +10,11 @@ python-nmap>=0.7.1
 scapy>=2.5.0
 python-gvm>=21.0.0
 ipaddress>=1.0.23
+
+# Web Application Security Testing Dependencies
+# Note: Most web tools use only standard library + requests
+# The following are optional enhancements:
+PyJWT>=2.8.0          # For JWT token verification and generation (optional)
+cryptography>=41.0.0  # For advanced JWT operations (optional)
+pycryptodome>=3.18.0  # For additional crypto operations (optional)
 

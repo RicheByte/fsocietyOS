@@ -71,6 +71,9 @@ try:
 		=== NETWORK PENETRATION TESTING ===
 		[2] Network Tools
 		
+		=== WEB APPLICATION SECURITY ===
+		[3] Web Security Tools
+		
 		=== INFORMATION ===
 		[90] About FSociety
 		[91] Random Quote
@@ -383,6 +386,159 @@ try:
 				
 				else:
 					if network_select:
+						print("\n\033[91m [!] Invalid option. Please try again.\033[0m")
+						time.sleep(1)
+						clear_screen()
+		
+		# Web Security Tools Menu
+		elif select == '3':
+			clear_screen()
+			web_running = True
+			while web_running:
+				print("\n\033[92m" + "="*70)
+				print("           WEB APPLICATION SECURITY TESTING TOOLS")
+				print("="*70 + "\033[0m\n")
+				
+				print("\033[97m[1]  SQL Injection Tester\033[0m")
+				print("\033[97m     Detect SQL injection vulnerabilities (Error/Union/Blind/Time-based)\033[0m\n")
+				
+				print("\033[97m[2]  XSS (Cross-Site Scripting) Injector\033[0m")
+				print("\033[97m     Test for reflected, stored, and DOM-based XSS flaws\033[0m\n")
+				
+				print("\033[97m[3]  Directory & File Brute-Forcer\033[0m")
+				print("\033[97m     Discover hidden directories, files, and backup archives\033[0m\n")
+				
+				print("\033[97m[4]  Admin Panel Finder\033[0m")
+				print("\033[97m     Locate administrative interfaces and login pages\033[0m\n")
+				
+				print("\033[97m[5]  CSRF PoC Generator\033[0m")
+				print("\033[97m     Create Cross-Site Request Forgery proof-of-concept exploits\033[0m\n")
+				
+				print("\033[97m[6]  LFI/RFI Exploiter\033[0m")
+				print("\033[97m     Exploit Local and Remote File Inclusion vulnerabilities\033[0m\n")
+				
+				print("\033[97m[7]  JWT Token Analyzer\033[0m")
+				print("\033[97m     Decode, verify, and crack JSON Web Tokens\033[0m\n")
+				
+				print("\033[97m[8]  SSRF Detector\033[0m")
+				print("\033[97m     Find Server-Side Request Forgery vulnerabilities\033[0m\n")
+				
+				print("\033[97m[9]  API Endpoint Fuzzer\033[0m")
+				print("\033[97m     Fuzz REST/GraphQL/SOAP APIs with malformed data\033[0m\n")
+				
+				print("\033[97m[10] Web Traffic Generator\033[0m")
+				print("\033[97m     HTTP/HTTPS stress testing and DoS simulation\033[0m\n")
+				
+				print("\033[91m[0]  Back to Main Menu\033[0m\n")
+				
+				web_select = input("\033[95m [?] Select Web Security Tool : \033[0m")
+				
+				if web_select == '1':
+					clear_screen()
+					try:
+						from web import sql_injection
+						sql_injection.run()
+					except Exception as e:
+						print(f"\033[91m[!] Error: {str(e)}\033[0m")
+					input("\n\033[97m [*] Press Enter to continue...\033[0m")
+					clear_screen()
+				
+				elif web_select == '2':
+					clear_screen()
+					try:
+						from web import xss_injector
+						xss_injector.run()
+					except Exception as e:
+						print(f"\033[91m[!] Error: {str(e)}\033[0m")
+					input("\n\033[97m [*] Press Enter to continue...\033[0m")
+					clear_screen()
+				
+				elif web_select == '3':
+					clear_screen()
+					try:
+						from web import directory_bruteforce
+						directory_bruteforce.run()
+					except Exception as e:
+						print(f"\033[91m[!] Error: {str(e)}\033[0m")
+					input("\n\033[97m [*] Press Enter to continue...\033[0m")
+					clear_screen()
+				
+				elif web_select == '4':
+					clear_screen()
+					try:
+						from web import admin_finder
+						admin_finder.run()
+					except Exception as e:
+						print(f"\033[91m[!] Error: {str(e)}\033[0m")
+					input("\n\033[97m [*] Press Enter to continue...\033[0m")
+					clear_screen()
+				
+				elif web_select == '5':
+					clear_screen()
+					try:
+						from web import csrf_poc_generator
+						csrf_poc_generator.run()
+					except Exception as e:
+						print(f"\033[91m[!] Error: {str(e)}\033[0m")
+					input("\n\033[97m [*] Press Enter to continue...\033[0m")
+					clear_screen()
+				
+				elif web_select == '6':
+					clear_screen()
+					try:
+						from web import lfi_rfi_exploiter
+						lfi_rfi_exploiter.run()
+					except Exception as e:
+						print(f"\033[91m[!] Error: {str(e)}\033[0m")
+					input("\n\033[97m [*] Press Enter to continue...\033[0m")
+					clear_screen()
+				
+				elif web_select == '7':
+					clear_screen()
+					try:
+						from web import jwt_analyzer
+						jwt_analyzer.run()
+					except Exception as e:
+						print(f"\033[91m[!] Error: {str(e)}\033[0m")
+					input("\n\033[97m [*] Press Enter to continue...\033[0m")
+					clear_screen()
+				
+				elif web_select == '8':
+					clear_screen()
+					try:
+						from web import ssrf_detector
+						ssrf_detector.run()
+					except Exception as e:
+						print(f"\033[91m[!] Error: {str(e)}\033[0m")
+					input("\n\033[97m [*] Press Enter to continue...\033[0m")
+					clear_screen()
+				
+				elif web_select == '9':
+					clear_screen()
+					try:
+						from web import api_fuzzer
+						api_fuzzer.run()
+					except Exception as e:
+						print(f"\033[91m[!] Error: {str(e)}\033[0m")
+					input("\n\033[97m [*] Press Enter to continue...\033[0m")
+					clear_screen()
+				
+				elif web_select == '10':
+					clear_screen()
+					try:
+						from web import traffic_generator
+						traffic_generator.run()
+					except Exception as e:
+						print(f"\033[91m[!] Error: {str(e)}\033[0m")
+					input("\n\033[97m [*] Press Enter to continue...\033[0m")
+					clear_screen()
+				
+				elif web_select == '0':
+					clear_screen()
+					web_running = False
+				
+				else:
+					if web_select:
 						print("\n\033[91m [!] Invalid option. Please try again.\033[0m")
 						time.sleep(1)
 						clear_screen()
