@@ -55,6 +55,17 @@ qrcode>=7.4.0         # QR code generation
 pyzbar>=0.1.9         # QR code decoding (requires system libzbar)
 scipy>=1.10.0         # Statistical tests for entropy analysis
 
+# Exploitation & Post-Exploitation Dependencies
+# Note: External tools required:
+# - Metasploit Framework (msfconsole, msfvenom)
+# - Impacket tools (psexec.py, wmiexec.py, smbexec.py, dcomexec.py)
+# Install Metasploit: https://www.metasploit.com/download
+# Install Impacket: pip install impacket
+boto3>=1.26.0         # AWS IAM auditing
+azure-identity>=1.12.0 # Azure authentication
+azure-mgmt-authorization>=3.0.0 # Azure RBAC management
+azure-mgmt-resource>=22.0.0 # Azure subscription management
+
 # Data Processing & Analysis
 pandas>=1.5.0         # Data analysis (optional but recommended)
 matplotlib>=3.6.0     # Visualization (optional)

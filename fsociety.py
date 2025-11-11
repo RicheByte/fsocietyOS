@@ -89,6 +89,9 @@ try:
 		=== PASSWORD & CRYPTOGRAPHY ===
 		[8] Password Cracking & Crypto Analysis
 		
+		=== EXPLOITATION & POST-EXPLOITATION ===
+		[9] Exploitation & Post-Exploitation Tools
+		
 		=== INFORMATION ===
 		[90] About FSociety
 		[91] Random Quote
@@ -1033,6 +1036,93 @@ try:
 				
 				else:
 					if crypto_select:
+						print("\n\033[91m [!] Invalid option. Please try again.\033[0m")
+						time.sleep(1)
+						clear_screen()
+		
+		elif select == '9':
+			clear_screen()
+			exploit_running = True
+			while exploit_running:
+				print("\n\033[92m" + "="*70)
+				print("     EXPLOITATION & POST-EXPLOITATION TOOLS")
+				print("="*70 + "\033[0m\n")
+				print("\033[97m  [1] Metasploit Automation Framework (Automated MSF Exploitation)\033[0m")
+				print("\033[97m  [2] Exploit-DB Search & Download Tool (POC Management)\033[0m")
+				print("\033[97m  [3] Privilege Escalation Checker (Linux/Windows)\033[0m")
+				print("\033[97m  [4] AV Evasion Payload Generator (Multi-Format Obfuscation)\033[0m")
+				print("\033[97m  [5] Lateral Movement Simulator (Network Propagation)\033[0m")
+				print("\033[97m  [6] Cloud IAM Permission Auditor (AWS/Azure RBAC)\033[0m")
+				print("\033[97m  [0] Back to Main Menu\033[0m")
+				
+				exploit_select = input(f"\n\033[95m [?] Choose Any Option : \033[0m")
+				
+				if exploit_select == '1':
+					clear_screen()
+					try:
+						from exploitation import metasploit_automation
+						metasploit_automation.run()
+					except Exception as e:
+						print(f"\033[91m[!] Error: {str(e)}\033[0m")
+					input("\n\033[97m [*] Press Enter to continue...\033[0m")
+					clear_screen()
+				
+				elif exploit_select == '2':
+					clear_screen()
+					try:
+						from exploitation import exploitdb_downloader
+						exploitdb_downloader.run()
+					except Exception as e:
+						print(f"\033[91m[!] Error: {str(e)}\033[0m")
+					input("\n\033[97m [*] Press Enter to continue...\033[0m")
+					clear_screen()
+				
+				elif exploit_select == '3':
+					clear_screen()
+					try:
+						from exploitation import privesc_checker
+						privesc_checker.run()
+					except Exception as e:
+						print(f"\033[91m[!] Error: {str(e)}\033[0m")
+					input("\n\033[97m [*] Press Enter to continue...\033[0m")
+					clear_screen()
+				
+				elif exploit_select == '4':
+					clear_screen()
+					try:
+						from exploitation import av_evasion_generator
+						av_evasion_generator.run()
+					except Exception as e:
+						print(f"\033[91m[!] Error: {str(e)}\033[0m")
+					input("\n\033[97m [*] Press Enter to continue...\033[0m")
+					clear_screen()
+				
+				elif exploit_select == '5':
+					clear_screen()
+					try:
+						from exploitation import lateral_movement
+						lateral_movement.run()
+					except Exception as e:
+						print(f"\033[91m[!] Error: {str(e)}\033[0m")
+					input("\n\033[97m [*] Press Enter to continue...\033[0m")
+					clear_screen()
+				
+				elif exploit_select == '6':
+					clear_screen()
+					try:
+						from exploitation import cloud_iam_auditor
+						cloud_iam_auditor.run()
+					except Exception as e:
+						print(f"\033[91m[!] Error: {str(e)}\033[0m")
+					input("\n\033[97m [*] Press Enter to continue...\033[0m")
+					clear_screen()
+				
+				elif exploit_select == '0':
+					clear_screen()
+					exploit_running = False
+				
+				else:
+					if exploit_select:
 						print("\n\033[91m [!] Invalid option. Please try again.\033[0m")
 						time.sleep(1)
 						clear_screen()
