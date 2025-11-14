@@ -1,11 +1,14 @@
-# FSociety Reborn - On Beta Testings
-![main Image](/assets/main.gif)
+# FSociety OS - On Beta Testings
+<p align="center">
+  <img src="/assets/main.gif" width="100%" alt="FSociety OS Main Interface">
+</p>
+
 ---
 A comprehensive offensive security toolkit inspired by Mr. Robot. Built for security researchers and ethical penetration testers.
 
 ## Overview
 
-FSociety Reborn is a Python-based penetration testing framework featuring 9 specialized categories with over 50 professional-grade tools for security assessment and ethical hacking.
+FSociety OS is a Python-based penetration testing framework featuring 9 specialized categories with over 50 professional-grade tools for security assessment and ethical hacking.
 
 ![Demo Video](/assets/video.gif)
 
@@ -106,7 +109,7 @@ FSociety Reborn is a Python-based penetration testing framework featuring 9 spec
 
 ```bash
 git clone https://github.com/RicheByte/fsocietyOS.git
-cd fsociety-reborn
+cd fsocietyOS
 python -m venv .env
 source .env/bin/activate  # On Windows: .env\Scripts\Activate.ps1
 pip install -r requirements.txt
