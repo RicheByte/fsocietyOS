@@ -1,0 +1,24 @@
+{
+  "description": "Common Wordlists for Scanning and Fuzzing (Last updated: June 2026)",
+  "directories": [
+    "admin", "administrator", "backup", "bak", "bin", "cgi-bin", "config", "configs",
+    "console", "cp", "cpanel", "database", "databases", "downloads", "forum", "ftp",
+    "home", "includes", "install", "lib", "libs", "logs", "mail", "media", "mysql",
+    "old", "password", "pma", "private", "public", "public_html", "sample", "secret",
+    "sql", "sqlbackup", "src", "ssh", "ssl", "stats", "store", "test", "tmp", "upload",
+    "uploads", "user", "users", "wp-admin", "wp-content", "wp-includes", "www", "wwwroot"
+  ],
+  "admin_paths": [
+    "/admin", "/administrator", "/admin.php", "/admin/index.php", "/admin/login.php",
+    "/adminpanel.php", "/administrator/index.php", "/admin/admin.php", "/admin-panel/",
+    "/cpanel", "/cpanel/index.php", "/administrator/", "/admin.html", "/admin/admin.html"
+  ],
+  "usernames": [
+    "admin", "administrator", "root", "test", "guest", "user", "users", "webmaster",
+    "support", "manager", "operator", "supervisor", "developer", "test123"
+  ],
+  "passwords": [
+    "admin", "password", "123456", "12345678", "1234567890", "admin123", "password123",
+    "root", "toor", "test", "test123", "qwerty", "letmein", "welcome", "monkey"
+  ]
+}

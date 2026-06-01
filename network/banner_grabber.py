@@ -1,15 +1,25 @@
 #!/usr/bin/env python3
 """
-Banner Grabbing Tool
-A script that connects to network services on open ports to retrieve version information.
+Banner Grabbing Tool with Improved Error Handling
+Connects to network services to retrieve version information and detect vulnerabilities.
 """
 
 import socket
 import sys
 import threading
+import logging
+from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from core import setup_logger, get_validated_input, ScanResult, Finding, get_session
+
 def run():
+    logger = setup_logger("banner_grabber")
+    logger.info("Banner grabber started")
+    
     print("\033[92m" + "="*70)
     print("           BANNER GRABBING TOOL - Service Fingerprinting")
     print("="*70 + "\033[0m\n")
@@ -17,14 +27,21 @@ def run():
     target = input("\033[97m[?] Enter target IP/hostname: \033[0m").strip()
     if not target:
         print("\033[91m[!] No target specified.\033[0m")
+        logger.error("No target specified")
         return
     
     # Resolve hostname
     try:
         target_ip = socket.gethostbyname(target)
         print(f"\033[97m[*] Target resolved: {target} -> {target_ip}\033[0m\n")
-    except socket.gaierror:
+        logger.info(f"Target resolved: {target} -> {target_ip}")
+    except socket.gaierror as e:
         print(f"\033[91m[!] Could not resolve hostname: {target}\033[0m")
+        logger.error(f"Could not resolve hostname: {target} - {e}")
+        return
+    except Exception as e:
+        print(f"\033[91m[!] Error resolving hostname: {e}\033[0m")
+        logger.error(f"Error resolving hostname: {e}")
         return
     
     print("\n\033[97m[*] Options:\033[0m")
@@ -38,19 +55,20 @@ def run():
     ports = []
     
     if choice == '1':
-        port = input("\033[97m[?] Enter port number: \033[0m").strip()
-        if port.isdigit():
-            ports = [int(port)]
-        else:
-            print("\033[91m[!] Invalid port number.\033[0m")
-            return
+        port = get_validated_input("\033[97m[?] Enter port number: \033[0m", int, (1, 65535))
+        ports = [port]
     
     elif choice == '2':
         port_input = input("\033[97m[?] Enter ports (comma-separated, e.g., 80,443,8080): \033[0m").strip()
         try:
             ports = [int(p.strip()) for p in port_input.split(',') if p.strip().isdigit()]
-        except:
-            print("\033[91m[!] Invalid port format.\033[0m")
+            if not all(1 <= p <= 65535 for p in ports):
+                print("\033[91m[!] All ports must be between 1 and 65535.\033[0m")
+                logger.error("Invalid port range")
+                return
+        except ValueError as e:
+            print(f"\033[91m[!] Invalid port format: {e}\033[0m")
+            logger.error(f"Invalid port format: {e}")
             return
     
     elif choice == '3':
@@ -58,17 +76,21 @@ def run():
         ports = [21, 22, 23, 25, 53, 80, 110, 111, 135, 139, 143, 443, 445, 
                  993, 995, 1433, 1521, 1723, 3306, 3389, 5432, 5900, 8000, 8080, 8443]
         print(f"\033[97m[*] Scanning {len(ports)} common ports\033[0m")
+        logger.info(f"Scanning {len(ports)} common ports")
     
     elif choice == '4':
         ports = list(range(1, 1025))
         print(f"\033[97m[*] Scanning ports 1-1024\033[0m")
+        logger.info("Scanning ports 1-1024")
     
     else:
         print("\033[91m[!] Invalid choice.\033[0m")
+        logger.error("Invalid menu choice")
         return
     
     if not ports:
         print("\033[91m[!] No valid ports specified.\033[0m")
+        logger.error("No valid ports specified")
         return
     
     timeout = 3
@@ -85,19 +107,22 @@ def run():
         5432: "PostgreSQL", 5900: "VNC", 8000: "HTTP-Alt", 8080: "HTTP-Proxy", 8443: "HTTPS-Alt"
     }
     
+    # Create result object
+    result = ScanResult(tool="banner_grabber", target=target_ip)
+    
     def grab_banner(ip, port):
         try:
             # Check if port is open first
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(2)
-            result = sock.connect_ex((ip, port))
+            connect_result = sock.connect_ex((ip, port))
             
             with lock:
                 scanned[0] += 1
                 if len(ports) > 10 and scanned[0] % 10 == 0:
                     print(f"\r\033[97m[*] Scanning... {scanned[0]}/{len(ports)}\033[0m", end='', flush=True)
             
-            if result != 0:
+            if connect_result != 0:
                 sock.close()
                 return None
             
@@ -133,18 +158,28 @@ def run():
                     if not banner:
                         sock.send(b'\r\n')
                         banner = sock.recv(1024).decode('utf-8', errors='ignore').strip()
-            except:
+            except socket.timeout:
                 banner = "[No response to probe]"
+                logger.debug(f"Timeout receiving banner from {ip}:{port}")
+            except Exception as probe_error:
+                logger.debug(f"Error probing {ip}:{port}: {probe_error}")
+                banner = "[Probe error]"
             
             sock.close()
             
             return (port, service, banner if banner else "[Port open, no banner]")
         
         except socket.timeout:
+            logger.debug(f"Connection timeout to {ip}:{port}")
             return None
         except ConnectionRefusedError:
+            logger.debug(f"Connection refused to {ip}:{port}")
+            return None
+        except OSError as e:
+            logger.debug(f"OS error connecting to {ip}:{port}: {e}")
             return None
         except Exception as e:
+            logger.error(f"Unexpected error grabbing banner from {ip}:{port}: {e}")
             return None
     
     print(f"\n\033[92m[*] Grabbing banners from {target_ip}...\033[0m\n")

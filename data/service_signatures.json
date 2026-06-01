@@ -1,0 +1,83 @@
+{
+  "description": "Common Service Vulnerability Signatures (Last updated: June 2026)",
+  "services": {
+    "ssh": {
+      "default_ports": [22],
+      "vulnerabilities": [
+        {
+          "version_pattern": "OpenSSH_[0-6]\\.[0-9]",
+          "cve": "CVE-2014-6271",
+          "title": "Shellshock vulnerability",
+          "severity": "CRITICAL"
+        },
+        {
+          "version_pattern": "OpenSSH_7\\.[0-4]",
+          "cve": "CVE-2018-15473",
+          "title": "Username enumeration",
+          "severity": "MEDIUM"
+        }
+      ]
+    },
+    "http": {
+      "default_ports": [80, 8080, 8000],
+      "vulnerabilities": [
+        {
+          "server_pattern": "Apache/2\\.[0-4]",
+          "cve": "CVE-2021-31798",
+          "title": "Apache information disclosure",
+          "severity": "MEDIUM"
+        },
+        {
+          "server_pattern": "IIS/[6-8]",
+          "cve": "CVE-2015-1635",
+          "title": "HTTP.sys vulnerability",
+          "severity": "HIGH"
+        }
+      ]
+    },
+    "ftp": {
+      "default_ports": [21],
+      "vulnerabilities": [
+        {
+          "version_pattern": "vsftpd 2\\.3\\.[2-4]",
+          "cve": "CVE-2011-2523",
+          "title": "vsftpd backdoor",
+          "severity": "CRITICAL"
+        }
+      ]
+    },
+    "smtp": {
+      "default_ports": [25, 587],
+      "vulnerabilities": [
+        {
+          "version_pattern": "Exim 4\\.[9][0-6]",
+          "cve": "CVE-2020-28017",
+          "title": "Exim remote code execution",
+          "severity": "CRITICAL"
+        }
+      ]
+    },
+    "mysql": {
+      "default_ports": [3306],
+      "vulnerabilities": [
+        {
+          "version_pattern": "5\\.[0-6]",
+          "cve": "CVE-2016-6662",
+          "title": "MySQL root privilege escalation",
+          "severity": "CRITICAL"
+        }
+      ]
+    },
+    "postgresql": {
+      "default_ports": [5432],
+      "vulnerabilities": [
+        {
+          "version_pattern": "9\\.[0-6]",
+          "cve": "CVE-2013-1899",
+          "title": "PostgreSQL privilege escalation",
+          "severity": "HIGH"
+        }
+      ]
+    }
+  }
+}
